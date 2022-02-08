@@ -5,7 +5,7 @@ total_steps = 100000
 start_steps = 3000
 test_every = 5000
 
-buffer_size = 20000
+buffer_size = 10000
 min_buffer_size = 1000
 batch_size = 64
 

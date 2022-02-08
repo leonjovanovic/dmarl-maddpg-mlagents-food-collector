@@ -39,6 +39,7 @@ random_disc = torch.zeros(20, 1)
 
 agent = Agent(state_size, action_size_cont, action_size_disc)
 for n_step in range(Config.total_steps):
+    print(n_step)
     # For printing and writing to TensorBoard purposes, accumulate reward each step of an episode.
     #agent.calculate_ep_reward(decision_steps, terminal_steps)
 
@@ -48,7 +49,7 @@ for n_step in range(Config.total_steps):
     env.step()
     decision_steps, terminal_steps = agent.get_steps(env, behavior_name)
     agent.add_to_buffer(decision_steps, terminal_steps)
-    break
+    #break
     #agent.update()
 
     #agent.record_data(n_step)

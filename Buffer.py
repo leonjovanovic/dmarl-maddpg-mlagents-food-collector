@@ -9,11 +9,11 @@ class Buffer:
         self.state_cell_size = state_shape[0] * state_shape[1] * state_shape[2]
         self.action_cell_size = action_shape
 
-        self.states = torch.zeros(Config.batch_size, Config.num_of_agents, self.state_cell_size).to(self.device)
-        self.new_states = torch.zeros(Config.batch_size, Config.num_of_agents, self.state_cell_size).to(self.device)
-        self.actions = torch.zeros(Config.batch_size, Config.num_of_agents, action_shape).to(self.device)
-        self.rewards = torch.zeros(Config.batch_size, Config.num_of_agents).to(self.device)
-        self.dones = torch.zeros(Config.batch_size, Config.num_of_agents).to(self.device)
+        self.states = torch.zeros(Config.buffer_size, Config.num_of_agents, self.state_cell_size).to(self.device)
+        self.new_states = torch.zeros(Config.buffer_size, Config.num_of_agents, self.state_cell_size).to(self.device)
+        self.actions = torch.zeros(Config.buffer_size, Config.num_of_agents, action_shape).to(self.device)
+        self.rewards = torch.zeros(Config.buffer_size, Config.num_of_agents).to(self.device)
+        self.dones = torch.zeros(Config.buffer_size, Config.num_of_agents).to(self.device)
 
         self.buffer_index = 0
 
@@ -33,11 +33,9 @@ class Buffer:
         self.rewards[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = reward_t
         if len(terminal_steps) == 0:
             self.dones[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = 0
-        elif len(decision_steps) == 0:
-            self.dones[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = 1
         else:
-            print("ERRRRROROROOROROROROOR")
-            print(len(terminal_steps))
-            print(len(decision_steps))
-            exit(0)
+            self.dones[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = 1
+            print(terminal_steps.reward)
+            print("TERMINAL")
         self.buffer_index = (self.buffer_index + Config.num_of_envs) % Config.buffer_size
+
