@@ -1,3 +1,4 @@
+import numpy as np
 import torch.cuda
 
 import Config
@@ -16,6 +17,7 @@ class Buffer:
         self.dones = torch.zeros(Config.buffer_size, Config.num_of_agents).to(self.device)
 
         self.buffer_index = 0
+        self.initialized = False
 
     # We receive states and actions for all 5 x 4 agents, so we need to take 5 by 5
     # state is 20 x 2000, action is 20 x 4
@@ -35,7 +37,13 @@ class Buffer:
             self.dones[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = 0
         else:
             self.dones[self.buffer_index: self.buffer_index + Config.num_of_envs, :] = 1
-            print(terminal_steps.reward)
-            print("TERMINAL")
         self.buffer_index = (self.buffer_index + Config.num_of_envs) % Config.buffer_size
+        if self.buffer_index == 0 and not self.initialized:
+            self.initialized = True
+
+    def sample_indices(self):
+        indices = np.arange(min(Config.buffer_size, self.buffer_index) if not self.initialized else Config.buffer_size)
+        np.random.shuffle(indices)
+        indices = indices[:Config.batch_size]
+        return indices
 
