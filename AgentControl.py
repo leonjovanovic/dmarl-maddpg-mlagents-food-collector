@@ -16,12 +16,22 @@ class AgentControl:
         self.target_policy_nn = []
         self.target_critic_nn = []
         for i in range(num_agents):
-            self.moving_policy_nn.append(PolicyNN(state_shape[0] * state_shape[1] * state_shape[2], action_cont_shape, action_disc_shape).to(self.device))
-            self.policy_nn_optim.append(torch.optim.Adam(self.moving_policy_nn[i].parameters(), lr=Config.policy_lr, eps=Config.adam_eps))
-            self.moving_critic_nn.append(CriticNN(num_agents * state_shape[0] * state_shape[1] * state_shape[2] + num_agents * (action_cont_shape + 1)).to(self.device))
-            self.critic_nn_optim.append(torch.optim.Adam(self.moving_critic_nn[i].parameters(), lr=Config.critic_lr, eps=Config.adam_eps))
-            self.target_policy_nn.append(PolicyNN(state_shape[0] * state_shape[1] * state_shape[2], action_cont_shape, action_disc_shape).to(self.device))
-            self.target_critic_nn.append(CriticNN(num_agents * state_shape[0] * state_shape[1] * state_shape[2] + num_agents * (action_cont_shape + 1)).to(self.device))
+            self.moving_policy_nn.append(
+                PolicyNN(state_shape[0] * state_shape[1] * state_shape[2], action_cont_shape, action_disc_shape).to(
+                    self.device))
+            self.policy_nn_optim.append(
+                torch.optim.Adam(self.moving_policy_nn[i].parameters(), lr=Config.policy_lr, eps=Config.adam_eps))
+            self.moving_critic_nn.append(CriticNN(
+                num_agents * state_shape[0] * state_shape[1] * state_shape[2] + num_agents * (
+                            action_cont_shape + 1)).to(self.device))
+            self.critic_nn_optim.append(
+                torch.optim.Adam(self.moving_critic_nn[i].parameters(), lr=Config.critic_lr, eps=Config.adam_eps))
+            self.target_policy_nn.append(
+                PolicyNN(state_shape[0] * state_shape[1] * state_shape[2], action_cont_shape, action_disc_shape).to(
+                    self.device))
+            self.target_critic_nn.append(CriticNN(
+                num_agents * state_shape[0] * state_shape[1] * state_shape[2] + num_agents * (
+                            action_cont_shape + 1)).to(self.device))
         self.mse = torch.nn.MSELoss()
         self.noise_std = 0.1
 
@@ -29,22 +39,24 @@ class AgentControl:
         # Transform 20x40x40x5 to 4x5x8000
         state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
-        action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
-        action_disc_prob = torch.zeros((state.shape[0], 2)).to(self.device)
+        # action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
+        # action_disc_prob = torch.zeros((state.shape[0], 2)).to(self.device) # 2
+        actions = torch.zeros((state.shape[0], 4)).to(self.device)
         for i in range(Config.num_of_envs * Config.num_of_agents):
-            action_cont[i, :], action_disc_prob[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
-        noise = (self.noise_std ** 0.5) * torch.randn(action_cont.shape).to(self.device)
-        action_cont = torch.clip(action_cont + noise, -1, 1).detach().cpu().numpy()
+            actions[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
+        noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 4)).to(self.device)
+        actions = torch.clip(actions + noise, -1, 1).detach().cpu().numpy()
         # Razlika izmedju generisanog broja od 0 do 1 i verovatnoce
-        choices = np.random.random((state.shape[0], 1)) - action_disc_prob.detach().cpu().numpy()[:, :1]
+        # choices = np.random.random((state.shape[0], 1)) - action_disc_prob.detach().cpu().numpy()[:, :1]
         # Veci jednak od 0 => 1, manji od nule => 0
-        action_disc = np.array(np.greater(choices, 0), dtype=int)
-        return action_cont, action_disc
+        # action_disc = np.array(np.greater(choices, 0), dtype=int)
+        return actions[:, :3], actions[:, 3:]
 
     def get_actions_random(self, state):
-        action_cont = np.random.random((state.shape[0], self.action_cont_shape)) * 2 - 1
-        action_disc = np.round(np.random.random((state.shape[0], 1)))
-        return action_cont, action_disc
+        #action_cont = np.random.random((state.shape[0], self.action_cont_shape)) * 2 - 1
+        #action_disc = np.round(np.random.random((state.shape[0], 1)))
+        actions = np.random.random((state.shape[0], self.action_cont_shape + 1)) * 2 - 1
+        return actions[:, :3], actions[:, 3:]
 
     def lr_std_decay(self, n_step):
         frac = 1 - n_step / Config.total_steps
@@ -83,3 +95,6 @@ class AgentControl:
             self.critic_nn_optim[i].step()
             critic_losses[i] = critic_losses[i].detach()
         return critic_losses
+
+    def policy_update(self):
+        pass
