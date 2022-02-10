@@ -31,7 +31,7 @@ random_cont = torch.zeros(20, 3) + 1
 random_cont[:, 2] = 0
 random_disc = torch.zeros(20, 1)
 
-agent = Agent(state_size, action_size_cont, action_size_disc - 1, Config.num_of_agents)
+agent = Agent(state_size, action_size_cont, action_size_disc, Config.num_of_agents)
 for n_step in range(Config.total_steps):
     print(n_step)
     # For printing and writing to TensorBoard purposes, accumulate reward each step of an episode.
@@ -46,6 +46,8 @@ for n_step in range(Config.total_steps):
     agent.update(n_step)
 
     #agent.record_data(n_step)
+    if len(terminal_steps) > 0:
+        env.reset()
 
 
 # tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\drl-ml-agents-3dball\ddpg\content\runs" --host=127.0.0.1

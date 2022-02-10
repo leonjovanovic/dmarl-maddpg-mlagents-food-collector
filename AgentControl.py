@@ -39,24 +39,24 @@ class AgentControl:
         # Transform 20x40x40x5 to 4x5x8000
         state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
-        # action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
-        # action_disc_prob = torch.zeros((state.shape[0], 2)).to(self.device) # 2
-        actions = torch.zeros((state.shape[0], 4)).to(self.device)
+        action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
+        action_disc = torch.zeros((state.shape[0], 1)).to(self.device) # 2
+        # actions = torch.zeros((state.shape[0], 4)).to(self.device)
         for i in range(Config.num_of_envs * Config.num_of_agents):
-            actions[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
-        noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 4)).to(self.device)
-        actions = torch.clip(actions + noise, -1, 1).detach().cpu().numpy()
+            action_cont[i, :], action_disc[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
+        noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 3)).to(self.device)
+        action_cont = torch.clip(action_cont + noise, -1, 1).detach().cpu().numpy()
         # Razlika izmedju generisanog broja od 0 do 1 i verovatnoce
         # choices = np.random.random((state.shape[0], 1)) - action_disc_prob.detach().cpu().numpy()[:, :1]
         # Veci jednak od 0 => 1, manji od nule => 0
         # action_disc = np.array(np.greater(choices, 0), dtype=int)
-        return actions[:, :3], actions[:, 3:]
+        return action_cont, action_disc.detach().cpu().numpy()
 
     def get_actions_random(self, state):
-        #action_cont = np.random.random((state.shape[0], self.action_cont_shape)) * 2 - 1
-        #action_disc = np.round(np.random.random((state.shape[0], 1)))
-        actions = np.random.random((state.shape[0], self.action_cont_shape + 1)) * 2 - 1
-        return actions[:, :3], actions[:, 3:]
+        action_cont = np.random.random((state.shape[0], self.action_cont_shape)) * 2 - 1
+        action_disc = np.round(np.random.random((state.shape[0], 1)))
+        #actions = np.random.random((state.shape[0], self.action_cont_shape + 1)) * 2 - 1
+        return action_cont, action_disc
 
     def lr_std_decay(self, n_step):
         frac = 1 - n_step / Config.total_steps
@@ -73,19 +73,19 @@ class AgentControl:
         actions_f = torch.flatten(actions, start_dim=1)
         new_states_f = torch.flatten(new_states, start_dim=1)
         new_actions_f = torch.zeros(actions_f.shape).to(self.device)
+        # Finding new actions for each agent. We need all actions for each CriticNN THIS WILL CHANGE IN THE FUTURE
         for i in range(Config.num_of_agents):
-            action_cont, action_disc_prob = self.target_policy_nn[i](new_states[:, i, :])
-            choices = np.random.random((action_disc_prob.shape[0], 1)) - action_disc_prob.detach().cpu().numpy()[:, :1]
-            action_disc = np.array(np.greater(choices, 0), dtype=int)
-            action_cont = action_cont.detach()
-            new_action = torch.cat((action_cont, torch.Tensor(action_disc).to(self.device)), dim=1)
-            new_actions_f[:, i * new_action.shape[1]: (i + 1) * new_action.shape[1]] = new_action
+            action_cont, action_disc = self.target_policy_nn[i](new_states[:, i, :])
+            #choices = np.random.random((action_disc_prob.shape[0], 1)) - action_disc_prob.detach().cpu().numpy()[:, :1]
+            #action_disc = np.array(np.greater(choices, 0), dtype=int)
+            new_action = torch.cat((action_cont, action_disc), dim=1)
+            new_actions_f[:, i * new_action.shape[1]: (i + 1) * new_action.shape[1]] = new_action.detach()
         # Input for Target CriticNN = new state and new action (DETACHED), input for Moving CriticNN = state and action
         critic_losses = []
         for i in range(Config.num_of_agents):
             # NN output shape = batch_size x 1
-            state_values = self.moving_critic_nn[i](states_f, actions_f)
-            new_state_values = self.target_critic_nn[i](new_states_f, new_actions_f).detach()
+            state_values = self.moving_critic_nn[i](states_f, actions_f).squeeze(-1)
+            new_state_values = self.target_critic_nn[i](new_states_f, new_actions_f).squeeze(-1).detach()
             # rewards shape = batch_size x 1, CriticNN output shape = batch_size x 1
             target = rewards[:, i] + Config.gamma * new_state_values
             critic_losses.append(self.mse(state_values, target))
@@ -96,5 +96,34 @@ class AgentControl:
             critic_losses[i] = critic_losses[i].detach()
         return critic_losses
 
-    def policy_update(self):
-        pass
+    def policy_update(self, states, actions):
+        states_f = torch.flatten(states, start_dim=1)
+        policy_losses = []
+        for i in range(Config.num_of_agents):
+            action_cont, action_disc = self.moving_policy_nn[i](states[:, i, :])
+            actions_agent = actions.detach().clone()
+            actions_agent[:, i, :] = torch.cat((action_cont, action_disc), dim=1)
+            actions_f = torch.flatten(actions_agent, start_dim=1)
+            policy_loss = self.moving_critic_nn[i](states_f, actions_f).squeeze(-1)
+            policy_loss = -torch.mean(policy_loss)
+            policy_losses.append(policy_loss)
+
+            self.policy_nn_optim[i].zero_grad()
+            policy_losses[i].backward()
+            self.policy_nn_optim[i].step()
+            policy_losses[i] = policy_losses[i].detach()
+        return policy_losses
+
+    def target_update(self):
+        # Update target networks by polyak averaging.
+        with torch.no_grad():
+            for i in range(Config.num_of_agents):
+                for mov, targ in zip(self.moving_critic_nn[i].parameters(), self.target_critic_nn[i].parameters()):
+                    # NB: We use an in-place operations "mul_", "add_" to update target
+                    # params, as opposed to "mul" and "add", which would make new tensors.
+                    targ.data.mul_(Config.polyak)
+                    targ.data.add_((1 - Config.polyak) * mov.data)
+
+                for mov, targ in zip(self.moving_policy_nn[i].parameters(), self.target_policy_nn[i].parameters()):
+                    targ.data.mul_(Config.polyak)
+                    targ.data.add_((1 - Config.polyak) * mov.data)

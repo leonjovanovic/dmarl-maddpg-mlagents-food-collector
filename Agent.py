@@ -17,7 +17,7 @@ class Agent:
         else:
             action_cont, action_disc = self.agent_control.get_actions(state)
         self.buffer.add_first_part(state, action_cont, action_disc)
-        return action_cont, np.round((action_disc + 1) / 2)
+        return action_cont, action_disc
 
     @staticmethod
     def get_steps(env, behavior_name):
@@ -33,9 +33,10 @@ class Agent:
             return
         indices = self.buffer.sample_indices()
         critic_losses = self.agent_control.critic_update(self.buffer.states[indices], self.buffer.actions[indices], self.buffer.rewards[indices], self.buffer.new_states[indices])
-        print(critic_losses)
-        policy_losses = self.agent_control.policy_update()
-        #self.agent_control.target_update()
+        #print(critic_losses)
+        policy_losses = self.agent_control.policy_update(self.buffer.states[indices], self.buffer.actions[indices])
+        #print(policy_losses)
+        self.agent_control.target_update()
 
 
 

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as f
 
 import Config
 
@@ -17,15 +18,14 @@ class PolicyNN(nn.Module):
             nn.Linear(256, output_cont_shape + output_disc_shape),
             nn.Tanh()
         )
-        #self.cont = nn.Tanh()
+        self.cont = nn.Tanh()
         #self.disc = nn.Softmax(dim=-1)
 
     def forward(self, state):
         output = self.model(state)
-        #action_cont = self.cont(output[..., :-self.disc_shape])
-        #action_disc = self.disc(output[..., -self.disc_shape:])
-        #return action_cont, action_disc
-        return output
+        action_cont = self.cont(output[..., :-self.disc_shape])
+        action_disc = nn.functional.gumbel_softmax(output[..., -self.disc_shape:], hard=True, dim=-1)
+        return action_cont, action_disc[..., -1:]
 
 class CriticNN(nn.Module):
     def __init__(self, input_shape):
