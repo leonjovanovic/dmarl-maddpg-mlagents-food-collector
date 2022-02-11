@@ -2,15 +2,20 @@ import numpy as np
 from mlagents_envs.base_env import ActionTuple
 from mlagents_envs.environment import UnityEnvironment
 import torch
+from mlagents_envs.side_channel import IncomingMessage
+from mlagents_envs.side_channel.stats_side_channel import StatsSideChannel
 
 import Config
 from Agent import Agent
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # This is a non-blocking call that only loads the environment.
+channel = StatsSideChannel()
+msg = IncomingMessage(buffer=bytes(1000))
+channel.on_message_received(msg)
 env = UnityEnvironment(
     file_name='D:/Users/Leon Jovanovic/Documents/Computer Science/Unity Projects/ml-agents/Project/BuildFoodCollector/UnityEnvironment.exe',
-    seed=1, side_channels=[])
+    seed=1, side_channels=[channel])
 # Start interacting with the environment.
 env.reset()
 behavior_name = next(iter(env.behavior_specs.keys()))
@@ -31,11 +36,11 @@ random_cont = torch.zeros(20, 3) + 1
 random_cont[:, 2] = 0
 random_disc = torch.zeros(20, 1)
 
-agent = Agent(state_size, action_size_cont, action_size_disc, Config.num_of_agents)
+agent = Agent(env, behavior_name, state_size, action_size_cont, action_size_disc, Config.num_of_agents)
 for n_step in range(Config.total_steps):
     print(n_step)
     # For printing and writing to TensorBoard purposes, accumulate reward each step of an episode.
-    #agent.calculate_ep_reward(decision_steps, terminal_steps)
+    agent.calculate_ep_reward(decision_steps)
 
     action_cont, action_disc = agent.get_actions(decision_steps.obs[0], n_step)
     action = ActionTuple(discrete=action_disc, continuous=action_cont)
@@ -45,13 +50,15 @@ for n_step in range(Config.total_steps):
     agent.add_to_buffer(decision_steps, terminal_steps)
     agent.update(n_step)
 
-    #agent.record_data(n_step)
     if len(terminal_steps) > 0:
-        env.reset()
+        # Add terminal reward, record data(Tensorboard) and reset environment
+        agent.reset(env, terminal_steps, n_step)
+        # Check if the model is to be tested. If it is, test and retreive new required decisions because test reseted env.
+        if agent.check_goal(n_step):
+            if agent.test(n_step):
+                break
+        decision_steps, terminal_steps = agent.get_steps(env, behavior_name)
 
+# tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\dmarl-ml-agents-food-collector\content\runs" --host=127.0.0.1
 
-# tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\drl-ml-agents-3dball\ddpg\content\runs" --host=127.0.0.1
-
-# TODO policy update and target nns update
-# TODO calculating reward
-# TODO record data Tensorboard
+# TODO test process

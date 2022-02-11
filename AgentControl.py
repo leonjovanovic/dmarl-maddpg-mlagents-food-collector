@@ -36,14 +36,16 @@ class AgentControl:
         self.noise_std = 0.1
 
     def get_actions(self, state):
-        # Transform 20x40x40x5 to 4x5x8000
+        # Transform 20x40x40x5 to 5x4x8000
         state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
         action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
         action_disc = torch.zeros((state.shape[0], 1)).to(self.device) # 2
         # actions = torch.zeros((state.shape[0], 4)).to(self.device)
-        for i in range(Config.num_of_envs * Config.num_of_agents):
-            action_cont[i, :], action_disc[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
+        for i in range(Config.num_of_agents):
+            action_cont[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :], action_disc[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :] = self.moving_policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
+        #for i in range(Config.num_of_envs * Config.num_of_agents):
+        #    action_cont[i, :], action_disc[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
         noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 3)).to(self.device)
         action_cont = torch.clip(action_cont + noise, -1, 1).detach().cpu().numpy()
         # Razlika izmedju generisanog broja od 0 do 1 i verovatnoce
@@ -65,7 +67,7 @@ class AgentControl:
             self.critic_nn_optim[i].param_groups[0]["lr"] = frac * Config.critic_lr
         self.noise_std = self.noise_std * frac
 
-    def critic_update(self, states, actions, rewards, new_states):
+    def critic_update(self, states, actions, rewards, new_states, dones):
         # States shape = batch_size x num_of_agents x 8000 (e.g.64x5x8000), action shape = batch_size x num_of_agents x 4
         # CriticNN input shape = num_of_agents x 8000 + num_of_agents x 4
         # state_f & new_state_f shape = 64 x 40000, action_f & new_action_f shape = 64 x 20
@@ -87,13 +89,13 @@ class AgentControl:
             state_values = self.moving_critic_nn[i](states_f, actions_f).squeeze(-1)
             new_state_values = self.target_critic_nn[i](new_states_f, new_actions_f).squeeze(-1).detach()
             # rewards shape = batch_size x 1, CriticNN output shape = batch_size x 1
-            target = rewards[:, i] + Config.gamma * new_state_values
+            target = rewards[:, i] + Config.gamma * new_state_values * (1 - dones[:, i])
             critic_losses.append(self.mse(state_values, target))
 
             self.critic_nn_optim[i].zero_grad()
             critic_losses[i].backward()
             self.critic_nn_optim[i].step()
-            critic_losses[i] = critic_losses[i].detach()
+            critic_losses[i] = critic_losses[i].detach().cpu()
         return critic_losses
 
     def policy_update(self, states, actions):
@@ -111,7 +113,7 @@ class AgentControl:
             self.policy_nn_optim[i].zero_grad()
             policy_losses[i].backward()
             self.policy_nn_optim[i].step()
-            policy_losses[i] = policy_losses[i].detach()
+            policy_losses[i] = policy_losses[i].detach().cpu()
         return policy_losses
 
     def target_update(self):
