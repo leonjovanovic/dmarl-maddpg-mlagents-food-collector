@@ -1,5 +1,5 @@
 from collections import deque
-
+import os
 import numpy as np
 import torch.cuda
 from mlagents_envs.base_env import ActionTuple
@@ -73,12 +73,16 @@ class TestAgent:
         return steps[0], steps[1]
 
     def check_goal(self, mean_return):
+        for i in range(Config.num_of_agents):
+            if os.path.exists('models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt'):  # checking if there is a file with this name
+                os.remove('models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')  # deleting the file
+            torch.save(self.policy_nn[i].state_dict(), 'models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')  # saving a new model with the same name
         if mean_return < 10:
             print("Goal NOT reached! Mean 100 test reward: " + str(np.round(mean_return, 2)))
             return False
         else:
             print("GOAL REACHED! Mean reward over 100 episodes is " + str(np.round(mean_return, 2)))
             # If we reached goal, save the model locally
-            for i in range(Config.num_of_agents):
-                torch.save(self.policy_nn[i].state_dict(), 'models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')
+            #for i in range(Config.num_of_agents):
+            #    torch.save(self.policy_nn[i].state_dict(), 'models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')
             return True
