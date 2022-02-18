@@ -12,11 +12,10 @@ class PolicyNN(nn.Module):
         self.disc_shape = output_disc_shape
         self.model = nn.Sequential(
             nn.Linear(input_shape, 256),
-            nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, output_cont_shape + output_disc_shape),
-            nn.Tanh()
+            nn.Tanh(),
+            nn.Linear(256, output_cont_shape + output_disc_shape)
         )
         self.cont = nn.Tanh()
         #self.disc = nn.Softmax(dim=-1)

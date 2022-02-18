@@ -4,7 +4,7 @@ import torch
 import Config
 from NN import PolicyNN, CriticNN
 
-
+torch.set_printoptions(threshold=10_000)
 class AgentControl:
     def __init__(self, state_shape, action_cont_shape, action_disc_shape, num_agents):
         self.action_cont_shape = action_cont_shape
@@ -36,7 +36,7 @@ class AgentControl:
         self.noise_std = 0.1
 
     def get_actions(self, state):
-        # Transform 20x40x40x5 to 5x4x8000
+        # Transform 20x40x40x5 to 20x8000
         state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
         action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
@@ -65,7 +65,7 @@ class AgentControl:
         for i in range(Config.num_of_agents):
             self.policy_nn_optim[i].param_groups[0]["lr"] = frac * Config.policy_lr
             self.critic_nn_optim[i].param_groups[0]["lr"] = frac * Config.critic_lr
-        self.noise_std = self.noise_std * frac
+        #self.noise_std = self.noise_std * frac
 
     def critic_update(self, states, actions, rewards, new_states, dones):
         # States shape = batch_size x num_of_agents x 8000 (e.g.64x5x8000), action shape = batch_size x num_of_agents x 4
