@@ -1,9 +1,9 @@
 import datetime
 
-total_steps = 1000000
+total_steps = 10000000
 # koliko dugo idemo random steps, treba nekih 10k msm
 start_steps = 10000
-test_every = 50000
+test_every = 100000
 
 buffer_size = 10000
 min_buffer_size = 1000
