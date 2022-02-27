@@ -76,7 +76,7 @@ class TestAgent:
         for i in range(Config.num_of_agents):
             if os.path.exists('models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt'):  # checking if there is a file with this name
                 os.remove('models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')  # deleting the file
-            torch.save(self.policy_nn[i].state_dict(), 'models/FoodCollector' + str(i) + "_" + Config.date_time + '.pt')  # saving a new model with the same name
+            torch.save(self.policy_nn[i].state_dict(), 'models/FoodCollector' + "_" + Config.date_time + "_" + str(i) + '.pt')  # saving a new model with the same name
         if mean_return < 10:
             print("Goal NOT reached! Mean 100 test reward: " + str(np.round(mean_return, 2)))
             return False

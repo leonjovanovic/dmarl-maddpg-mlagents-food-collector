@@ -59,3 +59,4 @@ for n_step in range(Config.total_steps):
         decision_steps, terminal_steps = agent.get_steps(env, behavior_name)
 
 # tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\dmarl-ml-agents-food-collector\content\runs" --host=127.0.0.1
+# 1,800,000
