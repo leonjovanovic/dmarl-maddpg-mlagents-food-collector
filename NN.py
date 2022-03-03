@@ -4,7 +4,7 @@ import torch.nn.functional as f
 
 import Config
 
-torch.manual_seed(Config.seed)
+#torch.manual_seed(Config.seed)
 
 class PolicyNN(nn.Module):
     def __init__(self, input_shape, output_cont_shape, output_disc_shape):

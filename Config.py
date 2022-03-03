@@ -3,9 +3,10 @@ import datetime
 total_steps = 10000000
 # koliko dugo idemo random steps, treba nekih 10k msm
 start_steps = 500000
-test_every = 100000
+test_every = 1000 #100000
+test_episodes = 4
 
-buffer_size = 10000
+buffer_size = 5000
 min_buffer_size = 1000
 batch_size = 64
 

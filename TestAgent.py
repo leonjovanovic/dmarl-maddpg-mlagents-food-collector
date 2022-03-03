@@ -25,19 +25,24 @@ class TestAgent:
         self.return_queue = deque(maxlen=500)
 
     def test(self, nns, writer, n_step):
+        flag = True
         # Create new enviroment and test it for 100 episodes using the model we trained
         self.test_reset(nns)
         decision_steps, terminal_steps = self.get_steps()
         n_episode = 0
         print("Testing...")
         print("Episodes finished ", end="")
-        while n_episode < (100 / Config.num_of_envs):
+        while n_episode < (Config.test_episodes / Config.num_of_envs):
             # Get the action from Policy NN given the state
             state_t = torch.flatten(torch.Tensor(decision_steps.obs[0]).to(self.device), start_dim=1)
             action_cont = torch.zeros((decision_steps.obs[0].shape[0], 3)).to(self.device)
             action_disc = torch.zeros((decision_steps.obs[0].shape[0], 1)).to(self.device)
             for i in range(Config.num_of_agents):
                 action_cont[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :], action_disc[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :] = self.policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
+            if flag:
+                flag = False
+                print(action_cont.detach().cpu().numpy())
+                print(action_disc.detach().cpu().numpy())
             actionsTuple = ActionTuple(discrete=action_disc.detach().cpu().numpy(),
                                        continuous=action_cont.detach().cpu().numpy())
             self.env.set_actions(self.behavior_name, actionsTuple)

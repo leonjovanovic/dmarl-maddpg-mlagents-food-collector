@@ -24,6 +24,7 @@ class Agent:
     def get_actions(self, state, n_step):
         if n_step < Config.start_steps:
             action_cont, action_disc = self.agent_control.get_actions_random(state)
+            _, _ = self.agent_control.get_actions(state, n_step)
         else:
             action_cont, action_disc = self.agent_control.get_actions(state)
         self.buffer.add_first_part(state, action_cont, action_disc)
@@ -45,6 +46,7 @@ class Agent:
         self.agent_control.lr_std_decay(n_step)
         if self.buffer.buffer_index < Config.min_buffer_size and not self.buffer.initialized:
             return
+        print("UCIM-----------------------------------------------------------------")
         indices = self.buffer.sample_indices()
         critic_losses = self.agent_control.critic_update(self.buffer.states[indices], self.buffer.actions[indices], self.buffer.rewards[indices], self.buffer.new_states[indices], self.buffer.dones[indices])
         policy_losses = self.agent_control.policy_update(self.buffer.states[indices], self.buffer.actions[indices])

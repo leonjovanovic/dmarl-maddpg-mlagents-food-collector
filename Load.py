@@ -7,7 +7,7 @@ from mlagents_envs.side_channel.stats_side_channel import StatsSideChannel
 import Config
 import NN
 
-MODEL_NAME = "FoodCollector4_22.8.32.6.pt"
+MODEL_NAME = "FoodCollector_28.8.31.25_2.pt"
 
 path = 'models/' + MODEL_NAME
 
