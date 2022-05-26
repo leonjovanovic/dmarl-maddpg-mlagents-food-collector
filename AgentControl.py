@@ -47,8 +47,8 @@ class AgentControl:
                 self.moving_policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
         #for i in range(Config.num_of_envs * Config.num_of_agents):
         #    action_cont[i, :], action_disc[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
-        if buffer_index >= Config.min_buffer_size:
-            print(f'Step {n_step}: {action_cont[0]}')
+        #if buffer_index >= Config.min_buffer_size:
+        #    print(f'Step {n_step}: {action_cont[0]}')
         noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 3)).to(self.device)
         action_cont = torch.clip(action_cont + noise, -1, 1).detach().cpu().numpy()
         # Razlika izmedju generisanog broja od 0 do 1 i verovatnoce
