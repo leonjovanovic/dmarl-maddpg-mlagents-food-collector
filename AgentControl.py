@@ -35,19 +35,20 @@ class AgentControl:
         self.mse = torch.nn.MSELoss()
         self.noise_std = 0.1
 
-    def get_actions(self, state, n_step):
+    def get_actions(self, state, n_step, buffer_index):
         # Transform 20x40x40x5 to 20x8000
         state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
         action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
-        action_disc = torch.zeros((state.shape[0], 1)).to(self.device) # 2
+        action_disc = torch.zeros((state.shape[0], 1)).to(self.device)
         # actions = torch.zeros((state.shape[0], 4)).to(self.device)
         for i in range(Config.num_of_agents):
-            action_cont[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :], action_disc[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :] = self.moving_policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
+            action_cont[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :], action_disc[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :] = \
+                self.moving_policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
         #for i in range(Config.num_of_envs * Config.num_of_agents):
         #    action_cont[i, :], action_disc[i, :] = self.moving_policy_nn[i % Config.num_of_agents](state_t[i, :])
-        print(n_step)
-        print(action_cont)
+        if buffer_index >= Config.min_buffer_size:
+            print(f'Step {n_step}: {action_cont[0]}')
         noise = (self.noise_std ** 0.5) * torch.randn((state.shape[0], 3)).to(self.device)
         action_cont = torch.clip(action_cont + noise, -1, 1).detach().cpu().numpy()
         # Razlika izmedju generisanog broja od 0 do 1 i verovatnoce

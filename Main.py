@@ -32,10 +32,7 @@ num_steps = len(decision_steps) + len(terminal_steps)
 agent_ids = decision_steps.agent_id
 # Jedan state je 40x40x5
 # Jedna akcija je 3 continuous akcije (napred, strana i rotacija) + binarna akcija (pucaj ili ne)
-random_cont = torch.zeros(20, 3) + 1
-random_cont[:, 2] = 0
-random_disc = torch.zeros(20, 1)
-
+print(agent_ids)
 agent = Agent(env, behavior_name, state_size, action_size_cont, action_size_disc, Config.num_of_agents)
 for n_step in range(Config.total_steps):
     # For printing and writing to TensorBoard purposes, accumulate reward each step of an episode.
@@ -53,9 +50,9 @@ for n_step in range(Config.total_steps):
         # Add terminal reward, record data(Tensorboard) and reset environment
         agent.reset(env, terminal_steps, n_step)
         # Check if the model is to be tested. If it is, test and retreive new required decisions because test reseted env.
-        if agent.check_goal(n_step):
-            if agent.test(n_step):
-                break
+        #if agent.check_goal(n_step):
+        #    if agent.test(n_step):
+        #        break
         decision_steps, terminal_steps = agent.get_steps(env, behavior_name)
 
 # tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\dmarl-ml-agents-food-collector\content\runs" --host=127.0.0.1
