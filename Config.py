@@ -6,19 +6,19 @@ start_steps = 10000
 test_every = 1000 #100000
 test_episodes = 4
 
-buffer_size = 10000
-min_buffer_size = 5000
-batch_size = 64
+buffer_size = 200000
+min_buffer_size = 10000
+batch_size = 128
 
 num_of_agents = 5
 num_of_envs = 4
 
-policy_lr = 0.0003
-critic_lr = 0.0004
+policy_lr = 0.00003
+critic_lr = 0.00004
 adam_eps = 1e-8
 
 gamma = 0.99
-polyak = 0.995
+polyak = 0.95
 
 seed = 0
 episode_length = 1000

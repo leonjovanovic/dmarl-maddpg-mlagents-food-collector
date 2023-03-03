@@ -24,9 +24,9 @@ class Agent:
     def get_actions(self, state, n_step):
         if n_step < Config.start_steps:
             action_cont, action_disc = self.agent_control.get_actions_random(state)
-            #_, _ = self.agent_control.get_actions(state, n_step, self.buffer.buffer_index)
+            _, _ = self.agent_control.get_actions(state, n_step, self.buffer)
         else:
-            action_cont, action_disc = self.agent_control.get_actions(state, n_step, self.buffer.buffer_index)
+            action_cont, action_disc = self.agent_control.get_actions(state, n_step, self.buffer)
         self.buffer.add_first_part(state, action_cont, action_disc)
         return action_cont, action_disc
 
@@ -52,6 +52,8 @@ class Agent:
         self.agent_control.target_update()
         self.critic_loss_mean.append(np.mean(np.array(critic_losses)))
         self.policy_loss_mean.append(np.mean(np.array(policy_losses)))
+        print(self.critic_loss_mean[-1])
+        print(self.policy_loss_mean[-1])
 
     def record_data(self, n_step):
         #if (n_step + 1) % Config.episode_length != 0:  # or self.buffer.buffer_index < Config.min_buffer_size:
@@ -73,7 +75,6 @@ class Agent:
         for a_id in terminal_steps.agent_id:
             self.ep_reward_agents[a_id] += terminal_steps.reward[a_id]
             self.return_queue.append(self.ep_reward_agents[a_id])
-
         self.record_data(n_step)
 
         self.ep_reward_agents = [0] * (Config.num_of_envs * Config.num_of_agents)

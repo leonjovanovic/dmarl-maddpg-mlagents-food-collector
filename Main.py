@@ -50,9 +50,9 @@ for n_step in range(Config.total_steps):
         # Add terminal reward, record data(Tensorboard) and reset environment
         agent.reset(env, terminal_steps, n_step)
         # Check if the model is to be tested. If it is, test and retreive new required decisions because test reseted env.
-        #if agent.check_goal(n_step):
-        #    if agent.test(n_step):
-        #        break
+        if agent.check_goal(n_step):
+           if agent.test(n_step):
+               break
         decision_steps, terminal_steps = agent.get_steps(env, behavior_name)
 
 # tensorboard --logdir="D:\Users\Leon Jovanovic\Documents\Computer Science\Reinforcement Learning\dmarl-ml-agents-food-collector\content\runs" --host=127.0.0.1

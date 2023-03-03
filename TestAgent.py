@@ -41,8 +41,8 @@ class TestAgent:
                 action_cont[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :], action_disc[i * Config.num_of_envs: (i + 1) * Config.num_of_envs, :] = self.policy_nn[i](state_t[i * Config.num_of_envs: (i + 1) * Config.num_of_envs])
             if flag:
                 flag = False
-                #print(action_cont.detach().cpu().numpy())
-                #print(action_disc.detach().cpu().numpy())
+                print(action_cont.detach().cpu().numpy())
+                print(action_disc.detach().cpu().numpy())
             actionsTuple = ActionTuple(discrete=action_disc.detach().cpu().numpy(),
                                        continuous=action_cont.detach().cpu().numpy())
             self.env.set_actions(self.behavior_name, actionsTuple)

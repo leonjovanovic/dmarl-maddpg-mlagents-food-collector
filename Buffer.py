@@ -6,7 +6,7 @@ import Config
 
 class Buffer:
     def __init__(self, state_shape, action_shape):
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = 'cpu'#'cuda' if torch.cuda.is_available() else 'cpu'
         self.state_cell_size = state_shape[0] * state_shape[1] * state_shape[2]
         self.action_cell_size = action_shape
 
