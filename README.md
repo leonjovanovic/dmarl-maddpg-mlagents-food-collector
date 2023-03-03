@@ -1,1 +1,1 @@
-# dmarl-ml-agents-food-collector
+# dmarl-maddpg-agents-food-collector
