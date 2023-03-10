@@ -37,7 +37,7 @@ class AgentControl:
 
     def get_actions(self, state, n_step, buffer):
         # Transform 20x40x40x5 to 20x8000
-        state_t = torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
+        state_t = torch.Tensor(state).to(self.device)#torch.flatten(torch.Tensor(state).to(self.device), start_dim=1)
         # NN output will be 1x3 and 1x2, we need to stack them to 20x3 and 20x2
         action_cont = torch.zeros((state.shape[0], 3)).to(self.device)
         action_disc = torch.zeros((state.shape[0], 1)).to(self.device)
